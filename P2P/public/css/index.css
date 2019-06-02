@@ -1,0 +1,158 @@
+/* 登陆框css开始 */
+/* Generated from SCSS and GULP autoprefixer */
+html,
+body {
+    height: 100%
+}
+body {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-align: start;
+    -ms-flex-align: start;
+    align-items: flex-start
+}
+.login__form {
+    background: #fff;
+    color: #333;
+    font-family: "Open Sans", sans-serif;
+    border-radius: 5px
+}
+.login__form .login__header {
+    padding-top: 30px;
+    text-align: center;
+    margin-bottom: 60px
+}
+.login__form .login__header .login__title {
+    font-size: 24px;
+    font-weight: 400
+}
+.login__form .login__main {
+    max-width: 80%;
+    margin-left: auto;
+    margin-right: auto
+}
+.login__form .login__main .login__group {
+    position: relative
+}
+.login__form .login__main .login__group .login__input {
+    margin-top: 50px;
+    padding: 10px 10px 10px 5px;
+    color: #333;
+    font-family: "Open Sans", sans-serif;
+    width: 100%;
+    font-size: 16px;
+    display: block;
+    border: none;
+    border-bottom: 1px solid #d0dce7;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box
+}
+.login__form .login__main .login__group .login__input:focus {
+    outline: none
+}
+.login__form .login__main .login__group .login__input:focus ~ label,
+.login__form .login__main .login__group .login__input:valid ~ label {
+    top: -20px;
+    font-size: 12px;
+    text-transform: uppercase
+}
+.login__form .login__main .login__group .login__label {
+    color: #333;
+    font-family: "Open Sans", sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    position: absolute;
+    pointer-events: none;
+    left: 5px;
+    top: 10px;
+    -webkit-transition: .2s ease all;
+    transition: .2s ease all
+}
+.login__form .login__main .login__terms {
+    font-size: 14px;
+    color: #a8b8c4;
+    margin: 40px auto;
+    line-height: 19px;
+}
+.login__form .login__main .login__terms a {
+    text-decoration: none;
+    color: #007ee5
+}
+.login__form .login__button {
+    font-family: "Open Sans", sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    width: 100%;
+    background: #007ee5;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    height: 45px;
+    font-size: 14px;
+    bottom: 0;
+    position: absolute
+}
+
+.login__button:hover {
+  cursor: pointer;
+}
+
+.login__bar {
+    position: relative;
+    display: block
+}
+.login__bar:before,
+.login__bar:after {
+    content: '';
+    height: 2px;
+    width: 0;
+    bottom: 1px;
+    position: absolute;
+    background: #007ee5;
+    transition: .2s ease all;
+    -moz-transition: .2s ease all;
+    -webkit-transition: .2s ease all
+}
+.login__bar:before {
+    left: 50%
+}
+.login__bar:after {
+    right: 50%
+}
+input:focus ~ .login__bar:before,
+input:focus ~ .login__bar:after {
+    width: 50%
+}
+@media (min-width: 620px) {
+    body {
+        background: url('http://i.imgur.com/80l7nXr.jpg') no-repeat;
+        background-attachment: fixed;
+        background-position: center;
+        background-size: cover;
+        -webkit-box-align: center;
+        -ms-flex-align: center;
+        align-items: center
+    }
+    .login__form {
+        max-width: 400px;
+        height: 470px;
+        margin-left: auto;
+        margin-right: auto
+    }
+    .login__title {
+        position: relative
+    }
+    .login__footer {
+        text-align: center
+    }
+    .login__footer .login__button {
+        bottom: initial;
+        position: initial;
+        width: 320px
+    }
+}
+.Login{
+    margin: 0 auto;
+}
+/* 登陆框css结束 */

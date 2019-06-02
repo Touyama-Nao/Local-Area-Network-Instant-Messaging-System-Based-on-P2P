@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <title>EJS</title>
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+		<link href="../css/index.css" rel="stylesheet">
+		<script src="../js/jquery-3.3.1.min.js"></script>
+		<script src="../../node_modules/socket.io/socket.io.js"></script>
+		<script src="../js/index.js"></script>
+</head>
+<body>
+<!-- <h1><%=title%></h1> -->
+<div class="Login">
+	<form class="login__form" method="POST" name="frm_login" action="#">
+		<header class="login__header">
+			 <h1 class="login__title">Login</h1>
+		</header>
+		<main class="login__main">
+			 <div class="login__group">
+					<input class="login__input" type="text" name="input_email" required>
+					<label class="login__label">NAME </label>
+					<div class="login__bar"></div>
+			 </div>
+<!-- 			 <div class="login__group">
+					<input class="login__input" type="password" name="input_password" required>
+					<label class="login__label">Password </label>
+					<div class="login__bar"></div>
+			 </div> -->
+			 <p class="login__terms">By signing up or clicking continue, I confirm that I haveread and agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a></p>
+		</main>
+		<footer class="login__footer">
+			<input class="login__button" type="button" name="btn_signin" value="Login">
+		</footer>
+ </form>
+</div>
+</body>
+</html>
