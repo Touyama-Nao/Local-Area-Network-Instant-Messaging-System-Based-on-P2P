@@ -6,15 +6,18 @@ var app=express();
 var path = require('path');
 // 1.在app.js的头上定义ejs:
 var ejs = require('ejs');
-//定义变量
+/* //定义变量
 var tem={
   message:"我是中间部分"
 };
 //创建服务器
 //在控制台输入node app.js启动服务器
-http.createServer(app).listen(8080,function(){
-  console.log("服务器地址为:http://localhost:8080");
+var server1 = http.createServer(app).listen(8082,function(){
+  console.log("服务器地址为:http://localhost:8082");
 });
+var io = require('socket.io').listen(server1);
+
+
 //挂载静态资源处理中间件,设置css或者js引用文件的静态路径
 app.use(express.static("../public"));
 // 或者以下这个也可以
@@ -30,7 +33,12 @@ app.set("view engine","html");
 //设置路由
 app.get("/index",function(req,res){
   res.render("index",{title:tem.message});
-});
+}); */
+
+
+
+
+
 
 /* 渲染模板代码结束 */
 
@@ -39,7 +47,7 @@ const dgram = require('dgram');
 const client = dgram.createSocket('udp4');
 const multicastAddr = '10.1.1.255';
 
-client.on('close', () => {
+/* client.on('close', () => {
   console.log('socket已关闭');
 });
 
@@ -53,11 +61,35 @@ client.on('listening', () => {
 client.on('message', (msg, rinfo) => {
   console.log(`receive server message from ${rinfo.address}:${rinfo.port}：${msg}`);
 });
-client.bind(8061); // 此处必须绑定自己的局域网IP或者不填，填localhost是不行的
+client.bind(8083); // 此处必须绑定自己的局域网IP或者不填，填localhost是不行的 */
 /* 客户端代码结束 */
 
 /* 服务端代码开始 */
 const server = dgram.createSocket('udp4');
+
+var server1 = app.listen(8082);
+var io = require('socket.io').listen(server1);
+io.on('connection', function (socket) {
+console.log('连接成功')
+
+/* 第一次使用登陆设置用户名字函数 */
+socket.on('ServerLogin', (data) => {  //服务端监听
+  server.send('username:' + data.username + ',服务端广播消息', 8082, '10.1.1.255');
+});
+
+server.on('message', (msg, rinfo) => {  //收到广播之后
+  console.log(`receive client message from ${rinfo.address}:${rinfo.port}：${msg}`);
+  var name = msg.toString();
+  console.log(name);
+  socket.emit('ClientLogin', {  //收到广播之后将IP地址和端口号返回给客户端处理
+    name:name,
+    IP:rinfo.address + ":" + rinfo.port
+   });
+   server.send('username:' + data.username + ',服务端广播消息', 8082, rinfo.address + ":" + rinfo.port);  //收到广播之后单播自己的信息返回
+});
+
+
+});
 
 server.on('close', () => {
   console.log('socket已关闭');
@@ -77,22 +109,19 @@ server.on('listening', () => {
   }, 1500); */
 });
 
-server.on('message', (msg, rinfo) => {
-  console.log(`receive client message from ${rinfo.address}:${rinfo.port}`);
-});
 
-function sendMsg(data) {
+
+function sendLoginMsg(data) {
     var that = this;
+    console.log(that.data);
   console.log('sending');
 /*   server.send('大家好啊，我是服务端广播消息', 8061, '10.1.1.255');
   server.send('大家好啊，我是服务端组播消息', 8061, multicastAddr); */
-  server.send('大家好啊，我是' + that.data.NAME + "IP地址是:" + that.data.IP +',服务端广播消息', 8061, '10.1.1.255');
+  server.send('大家好啊，我是' + that.data + ',服务端广播消息', 8061, '10.1.1.255');
 }
 
-server.bind('8060'); // 此处填写IP后无法组播
+server.bind('8082'); // 此处填写IP后无法组播
 
-/* 第一次使用登陆设置用户名字函数 */
-function setNick(data){
-    sendMsg(data);
-}
+
+
 /* 服务端代码结束 */

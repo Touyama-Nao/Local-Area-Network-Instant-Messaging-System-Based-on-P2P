@@ -1,5 +1,5 @@
 window.onload=function(){
-    var socket=io.connect('http://localhost:8080');    //监听的本机路径用来和本机的服务端联系在一起
+    var socket=io.connect('http://localhost:8082');    //监听的本机路径用来和本机的服务端联系在一起
     /* 获取本机IP地址函数开始 */
     function getUserIP(onNewIP) { //  onNewIp - your listener function for new IPs
         //compatibility for firefox and chrome
