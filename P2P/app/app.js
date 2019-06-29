@@ -136,23 +136,22 @@ console.log("client comming", client_sock.remoteAddress, client_sock.remotePort)
 // client_sock.setEncoding("hex"); // 转成二进制的文本编码
 // 
 
-server.on('TCPServerBuild',(data) => {  
   var same = false;
   for(let i = 0;i < clientList.length;i++){
-    if(data.name == clientList[i].name){
+    if(client_sock == clientList[i].client_sock){
       same = true;
     }
   };
   if(same == false){
     //更新客户机数组
-    client_sock.name = data.receiver.name; //用户机的名字填进去
+    /* client_sock.name = data.receiver.name; //用户机的名字填进去 */
     clientList.push(client_sock); 
-    client_sock.write('【聊天室提示】欢迎' + socket.name + '\n'); 
+    /* client_sock.write('【聊天室提示】欢迎' + socket.name + '\n');  */
     
     
     var isChange = false;//是否有相同的连接
     for(let j =0;j<TCPServerList.length;j++){
-      if(TCPServerList[j].receiver.IP == data.receiver.IP){
+      if(TCPServerList[j].receiver.IP == client_sock.remotePort.IP){
         isChange = true;
       }
     }
@@ -160,14 +159,18 @@ server.on('TCPServerBuild',(data) => {
     //1.创建socket
     var TCPClientConnectSeversocket = new net.Socket();
     //2.socket连接服务器
-    TCPClientConnectSeversocket.connect((data.receiver.IP).split(":")[0],(data.receiver.IP).split(":")[0],()=>{ //建立连接
-      TCPClientConnectSeversocket.name = data.receiver.name;
-      TCPClientConnectSeversocket.IP = data.receiver.IP;
-      TCPServerList.push({receiver:{name:TCPClientConnectSeversocket.name,IP:TCPClientConnectSeversocket.IP},ServerTCP:TCPClientConnectSeversocket});  //本机客户端全部放入数组当中--已经建立了连接
+    TCPClientConnectSeversocket.connect(/* client_sock.remotePort */6082,client_sock.remoteAddress.split(":")[4],()=>{ //建立连接,端口号何url顺序不能写乱
+/*       TCPClientConnectSeversocket.name = data.receiver.name; */
+      TCPClientConnectSeversocket.IP = client_sock.remoteAddress;
+
     }); 
+    TCPClientConnectSeversocket.on("error", function(e) {
+      console.log("error", e);
+    });
+    TCPServerList.push({receiver:{name:"",IP:TCPClientConnectSeversocket.IP},ServerTCP:TCPClientConnectSeversocket});  //本机客户端全部放入数组当中--已经建立了连接
     };
   };
-})
+
 
 
 
@@ -181,7 +184,7 @@ function showClients(){ //显示用户机数量
 // 客户端断开连接的时候处理,用户断线离开了
 client_sock.on("close", function() {
 console.log("close socket");
-clientList.splice(clientList.indexOf(socket), 1);
+/* clientList.splice(clientList.indexOf(socket), 1); */
 });
 
 // 接收到客户端的数据，调用这个函数
@@ -197,6 +200,7 @@ client_sock.on("data", function(data) {
       clientList[i].write('【' + socket.name + '】：' + data);   
       }  
     } */
+    io.on('connection', function (socket) {
     socket.emit('GetMsg', { //传送消息给界面
       Sender:{
         name:client.name,
@@ -210,6 +214,7 @@ client_sock.on("data", function(data) {
       date:"", //发送时间
       type:0, //指示传送的是文件还是消息
     });
+  })
 
 /* client_sock.end(); // 正常关闭 */
 });
@@ -244,7 +249,7 @@ console.log("client comming 22222");
 // node就会来监听我们的server,等待连接接入
 serverNet.listen({
 port: 6080,
-host: "127.0.0.1",
+host: (UserInfo.IP).split(":")[0],
 exclusive: true,
 });
 
@@ -255,8 +260,8 @@ exclusive: true,
 //TCP建立连接函数
 process.stdin.resume();
 process.stdin.setEncoding('utf8');
-
-server.on("TCPClientConnectServer",(data)=>{  //TCP主动建立连接
+io.on('connection', function (socket) {
+socket.on("TCPClientConnectServer",(data)=>{  //TCP主动建立连接
   var isChange = false;//是否有相同的连接
   for(let j =0;j<TCPServerList.length;j++){
     if(TCPServerList[j].receiver.IP == data.receiver.IP){
@@ -275,15 +280,18 @@ server.on("TCPClientConnectServer",(data)=>{  //TCP主动建立连接
   }
 })
 
-server.on('TCPClientSendSever',(data) => {   //TCP发送消息
-  for(let k = 1;k < TCPServerList.length;k++){
-    if(data.receiver.name == TCPServerList[k].receiver.name && ata.receiver.IP == TCPServerList[k].receiver.IP){
+socket.on('TCPClientSendSever',(data) => {   //TCP发送消息
+  console.log("TCPClientSendSever");
+  for(let k = 0;k < TCPServerList.length;k++){
+    console.log( TCPServerList[k])
+    if( data.receiver.IP == TCPServerList[k].receiver.IP){
+      console.log("我发了!");
       TCPServerList[k].ServerTCP.write(data.content); //发送消息
     }
   }
 });
 
-server.on('TCPClientDisConnect',(data) => {   //TCP断开连接
+socket.on('TCPClientDisConnect',(data) => {   //TCP断开连接
   for(let k = 1;k < TCPServerList.length;k++){
     if(data.receiver.name == TCPServerList[k].receiver.name && ata.receiver.IP == TCPServerList[k].receiver.IP){
       TCPServerList[k].ServerTCP.end(); //断开连接
@@ -292,6 +300,7 @@ server.on('TCPClientDisConnect',(data) => {   //TCP断开连接
   }
 });
 
+})
 /* var clientTCP = net.connect({port: 6080},function(){
   console.log('【本机提示】登录到聊天室');
   process.stdin.on('data',function(data){
