@@ -65,6 +65,7 @@ server.on('message', (msg, rinfo) => {  //收到广播之后
   console.log(`receive client message from ${rinfo.address}:${rinfo.port}：${msg}`);
   console.log(JSON.parse(msg.toString()));
   if(JSON.parse(msg.toString()).type == 0){ //判断是不是别的用户的新加入广播
+    console.log(rinfo.address,rinfo.port);;
     var name =JSON.parse(msg.toString()).User.name;
     socket.emit('ClientLogin', {  //收到广播之后将IP地址和端口号返回给客户端处理
       type: 4,  //返回时让他们不要互相发，重复发占用网络通道。
@@ -73,11 +74,12 @@ server.on('message', (msg, rinfo) => {  //收到广播之后
       },
       User:{
         name:name,
-        IP:rinfo.address + ":" + rinfo.port
+        IP:rinfo.address,
+        port:rinfo.port,
       },
      });
-     var Msg = '{"type":0,"Msg":{"content":""},"User":{"name":' + JSON.stringify(name) + ',"IP":'+ JSON.stringify(rinfo.address + ":" + rinfo.port) +'}}'; //json格式一定要标准！
-     server.send(Msg, 8082, rinfo.address + ":" + rinfo.port);  //收到广播之后单播自己的信息返回
+     var Msg = '{"type":4,"Msg":{"content":""},"User":{"name":' + JSON.stringify(name) + ',"IP":'+ JSON.stringify(rinfo.address + ":" + rinfo.port) +'}}'; //json格式一定要标准！
+     server.send(Msg, 8085, rinfo.address.toString());  //收到广播之后单播自己的信息返回
   }else if(JSON.parse(msg.toString()).type == 1){   //收到消息之后给用户端添加上去
     socket.emit('ClientGetMsg', {  //收到消息后将消息给客户端处理
       type: 1,
@@ -151,7 +153,7 @@ console.log("client comming", client_sock.remoteAddress, client_sock.remotePort)
     
     var isChange = false;//是否有相同的连接
     for(let j =0;j<TCPServerList.length;j++){
-      if(TCPServerList[j].receiver.IP == client_sock.remotePort.IP){
+      if(TCPServerList[j].receiver.IP == client_sock.remotePort){
         isChange = true;
       }
     }
@@ -194,27 +196,29 @@ console.log("close socket");
 // utf8 --> HelloWorld!!! hex--> "48656c6c6f576f726c6421"
 client_sock.on("data", function(data) {
   console.log(data);
+  console.log(client_sock.remoteAddress,client_sock.remotePort);
   //把当前连接的客户机的信息转发到其他客户机  
 /*   for(var i=0;i<clientList.length;i++) { 
     if(socket !== clientList[i]) {      
       clientList[i].write('【' + socket.name + '】：' + data);   
       }  
     } */
-    io.on('connection', function (socket) {
-    socket.emit('GetMsg', { //传送消息给界面
+
+    io.emit('GetMsg', { //传送消息给界面,这样也行不要嵌套太多函数了
       Sender:{
-        name:client.name,
-        IP:data,
+        name:"",
+        IP:client_sock.remoteAddress.split(":")[4],
+        port:client_sock.remotePort,
       },
       receiver:{
         name:UserInfo.Username, //填入个人信息
         IP:UserInfo.IP,
       },
-      content:data, //发送内容
+      content:data.toString(), //发送内容先将buff转换为uft8
       date:"", //发送时间
       type:0, //指示传送的是文件还是消息
     });
-  })
+
 
 /* client_sock.end(); // 正常关闭 */
 });
@@ -281,9 +285,7 @@ socket.on("TCPClientConnectServer",(data)=>{  //TCP主动建立连接
 })
 
 socket.on('TCPClientSendSever',(data) => {   //TCP发送消息
-  console.log("TCPClientSendSever");
   for(let k = 0;k < TCPServerList.length;k++){
-    console.log( TCPServerList[k])
     if( data.receiver.IP == TCPServerList[k].receiver.IP){
       console.log("我发了!");
       TCPServerList[k].ServerTCP.write(data.content); //发送消息
