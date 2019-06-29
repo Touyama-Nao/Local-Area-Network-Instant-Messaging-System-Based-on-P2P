@@ -123,7 +123,8 @@ server.bind('8081'); // 此处填写IP后无法组播
 var net = require("net");
 //保存客户机
 var clientList = [];
-var TCPClientList = []; //TCP客户端连接的数组
+var TCPClientList = []; //本机服务端与TCP客户端连接的数组
+var TCPServerList = []; //本机客户端与TCP服务端连接的数组
 
 // 创建一个net.Server用来监听,当连接进来的时候，就会调用我们的函数
 // client_sock,就是我们的与客户端通讯建立连接配对的socket
@@ -146,10 +147,25 @@ server.on('TCPServerBuild',(data) => {
     //更新客户机数组
     client_sock.name = data.receiver.name; //用户机的名字填进去
     clientList.push(client_sock); 
-    client_sock.write('【聊天室提示】欢迎' + socket.name + '\n');  
-    var clientTCP = net.connect({port: 6081,host:data.host},function(){ //本机客户端与对面的服务端建立连接
-    });
-    TCPClientList.push({receiver:{name:client_sock.name,IP:data.receiver.IP},clientTCP:clientTCP});  //本机客户端全部放入数组当中--已经建立了连接
+    client_sock.write('【聊天室提示】欢迎' + socket.name + '\n'); 
+    
+    
+    var isChange = false;//是否有相同的连接
+    for(let j =0;j<TCPServerList.length;j++){
+      if(TCPServerList[j].receiver.IP == data.receiver.IP){
+        isChange = true;
+      }
+    }
+    if(!isChange){
+    //1.创建socket
+    var TCPClientConnectSeversocket = new net.Socket();
+    //2.socket连接服务器
+    TCPClientConnectSeversocket.connect((data.receiver.IP).split(":")[0],(data.receiver.IP).split(":")[0],()=>{ //建立连接
+      TCPClientConnectSeversocket.name = data.receiver.name;
+      TCPClientConnectSeversocket.IP = data.receiver.IP;
+      TCPServerList.push({receiver:{name:TCPClientConnectSeversocket.name,IP:TCPClientConnectSeversocket.IP},ServerTCP:TCPClientConnectSeversocket});  //本机客户端全部放入数组当中--已经建立了连接
+    }); 
+    };
   };
 })
 
@@ -187,10 +203,10 @@ client_sock.on("data", function(data) {
         IP:data,
       },
       receiver:{
-        name:"",
-        IP:"",
+        name:UserInfo.Username, //填入个人信息
+        IP:UserInfo.IP,
       },
-      content:"", //发送内容
+      content:data, //发送内容
       date:"", //发送时间
       type:0, //指示传送的是文件还是消息
     });
@@ -240,19 +256,38 @@ exclusive: true,
 process.stdin.resume();
 process.stdin.setEncoding('utf8');
 
-server.on('TCPClientSend',(data) => {   //TCP发送消息
-  for(let k = 1;k < TCPClientList.length;k++){
-    if(data.receiver.name == TCPClientList[k].receiver.name && ata.receiver.IP == TCPClientList[k].receiver.IP){
-      TCPClientList[k].clientTCP.write(data.content); //发闪送消息
+server.on("TCPClientConnectServer",(data)=>{  //TCP主动建立连接
+  var isChange = false;//是否有相同的连接
+  for(let j =0;j<TCPServerList.length;j++){
+    if(TCPServerList[j].receiver.IP == data.receiver.IP){
+      isChange = true;
+    }
+  }
+  if(!isChange){
+  //1.创建socket
+  var TCPClientConnectSeversocket = new net.Socket();
+  //2.socket连接服务器
+	TCPClientConnectSeversocket.connect((data.receiver.IP).split(":")[0],(data.receiver.IP).split(":")[0],()=>{ //建立连接
+    TCPClientConnectSeversocket.name = data.receiver.name;
+    TCPClientConnectSeversocket.IP = data.receiver.IP;
+    TCPServerList.push({receiver:{name:TCPClientConnectSeversocket.name,IP:TCPClientConnectSeversocket.IP},ServerTCP:TCPClientConnectSeversocket});  //本机客户端全部放入数组当中--已经建立了连接
+  }); 
+  }
+})
+
+server.on('TCPClientSendSever',(data) => {   //TCP发送消息
+  for(let k = 1;k < TCPServerList.length;k++){
+    if(data.receiver.name == TCPServerList[k].receiver.name && ata.receiver.IP == TCPServerList[k].receiver.IP){
+      TCPServerList[k].ServerTCP.write(data.content); //发送消息
     }
   }
 });
 
 server.on('TCPClientDisConnect',(data) => {   //TCP断开连接
-  for(let k = 1;k < TCPClientList.length;k++){
-    if(data.receiver.name == TCPClientList[k].receiver.name && ata.receiver.IP == TCPClientList[k].receiver.IP){
-      TCPClientList[k].clientTCP.end(); //断开连接
-      TCPClientList.splice(k, 1);  //从客户列表中清除，但是本机的服务端连接数组中不清除，因为这要对面清除，现在是半双工
+  for(let k = 1;k < TCPServerList.length;k++){
+    if(data.receiver.name == TCPServerList[k].receiver.name && ata.receiver.IP == TCPServerList[k].receiver.IP){
+      TCPServerList[k].ServerTCP.end(); //断开连接
+      TCPServerList.splice(k, 1);  //从客户列表中清除，但是本机的服务端连接数组中不清除，因为这要对面清除，现在是半双工
     }
   }
 });
