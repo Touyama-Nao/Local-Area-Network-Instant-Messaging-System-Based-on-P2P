@@ -9,7 +9,10 @@ var ejs = require('ejs');
 const dgram = require('dgram');
 const client = dgram.createSocket('udp4');
 const multicastAddr = '224.100.100.100';  //组播端口号
-var Username = "";
+var UserInfo = {  //保存个人信息
+  Username:"",
+  IP:""
+}
 
 /* 服务端代码开始 */
 const server = dgram.createSocket('udp4');
@@ -33,6 +36,8 @@ function getClientIp() { //获取IP地址的os函数
   }
 }
 
+UserInfo.IP = getClientIp() + ":" + "8081";  //node服务端保存IP地址和端口号
+
 /* 获取IP地址函数 */
 
 socket.emit('getIPAdress',{  //收到广播之后将IP地址和端口号返回给客户端处理
@@ -50,8 +55,8 @@ socket.emit('getIPAdress',{  //收到广播之后将IP地址和端口号返回�
 socket.on('ServerLogin', (data) => {  //服务端监听
 /*   console.log(multicastAddr); */
   //server.addMembership(multicastAddr);
-  Username = data.username;
-  var Msg = '{"type":0,"Msg":{"content":""},"User":{"name":' + JSON.stringify(Username) + ',"IP":""}}'; //json格式一定要标准！
+  UserInfo.Username = data.username;
+  var Msg = '{"type":0,"Msg":{"content":""},"User":{"name":' + JSON.stringify(UserInfo.Username) + ',"IP":""}}'; //json格式一定要标准！
   server.send(Msg, 8081, multicastAddr);  //向组播广播号发送信息
 });
 
@@ -176,7 +181,20 @@ client_sock.on("data", function(data) {
       clientList[i].write('【' + socket.name + '】：' + data);   
       }  
     } */
-    client_sock
+    socket.emit('GetMsg', { //传送消息给界面
+      Sender:{
+        name:client.name,
+        IP:data,
+      },
+      receiver:{
+        name:"",
+        IP:"",
+      },
+      content:"", //发送内容
+      date:"", //发送时间
+      type:0, //指示传送的是文件还是消息
+    });
+
 /* client_sock.end(); // 正常关闭 */
 });
 
