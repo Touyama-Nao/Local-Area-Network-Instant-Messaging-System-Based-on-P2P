@@ -11,7 +11,8 @@ const client = dgram.createSocket('udp4');
 const multicastAddr = '224.100.100.100';  //组播端口号
 var UserInfo = {  //保存个人信息
   Username:"",
-  IP:""
+  IP:"",
+  port:""
 }
 
 /* 服务端代码开始 */
@@ -36,7 +37,8 @@ function getClientIp() { //获取IP地址的os函数
   }
 }
 
-UserInfo.IP = getClientIp() + ":" + "8081";  //node服务端保存IP地址和端口号
+UserInfo.IP = getClientIp() ;//node服务端保存IP地址和端口号
+UserInfo.port = "8081";  
 
 /* 获取IP地址函数 */
 
@@ -47,7 +49,8 @@ socket.emit('getIPAdress',{  //收到广播之后将IP地址和端口号返回�
   },
   User:{
     name:"",
-    IP:getClientIp() + ":8081"
+    IP:getClientIp(),
+    port:"8081",
   },
  });
 
@@ -56,8 +59,16 @@ socket.on('ServerLogin', (data) => {  //服务端监听
 /*   console.log(multicastAddr); */
   //server.addMembership(multicastAddr);
   UserInfo.Username = data.username;
-  var Msg = '{"type":0,"Msg":{"content":""},"User":{"name":' + JSON.stringify(UserInfo.Username) + ',"IP":""}}'; //json格式一定要标准！
-  server.send(Msg, 8081, multicastAddr);  //向组播广播号发送信息
+  var Msg = '{"type":0,"Msg":{"content":""},"User":{"name":' + JSON.stringify(UserInfo.Username) + ',"IP":' + JSON.stringify(UserInfo.IP) + ',"port":' + JSON.stringify(UserInfo.port) + '}}'; //json格式一定要标准！
+  server.send(Msg, 8083, multicastAddr);  //向组播广播号发送信息
+});
+
+socket.on('ServerLogout', (data) => {  //本机服务端登出
+  /*   console.log(multicastAddr); */
+    //server.addMembership(multicastAddr);
+    UserInfo.Username = data.username;
+    var Msg = '{"type":0,"Msg":{"content":"Logout"},"User":{"name":' + JSON.stringify(UserInfo.Username) + ',"IP":""}}'; //json格式一定要标准！发出登出信息
+    server.send(Msg, 8083, multicastAddr);  //向组播广播号发送信息
 });
 
 /* 服务端收到消息时候 */
@@ -66,11 +77,11 @@ server.on('message', (msg, rinfo) => {  //收到广播之后
   console.log(JSON.parse(msg.toString()));
   if(JSON.parse(msg.toString()).type == 0){ //判断是不是别的用户的新加入广播
     console.log(rinfo.address,rinfo.port);;
-    var name =JSON.parse(msg.toString()).User.name;
+    var name = JSON.parse(msg.toString()).User.name;
     socket.emit('ClientLogin', {  //收到广播之后将IP地址和端口号返回给客户端处理
       type: 4,  //返回时让他们不要互相发，重复发占用网络通道。
       Msg:{
-        content:"",
+        content:"Login",
       },
       User:{
         name:name,
@@ -78,24 +89,40 @@ server.on('message', (msg, rinfo) => {  //收到广播之后
         port:rinfo.port,
       },
      });
-     var Msg = '{"type":4,"Msg":{"content":""},"User":{"name":' + JSON.stringify(name) + ',"IP":'+ JSON.stringify(rinfo.address + ":" + rinfo.port) +'}}'; //json格式一定要标准！
-     server.send(Msg, 8085, rinfo.address.toString());  //收到广播之后单播自己的信息返回
+     console.log(33);
+     var Msg = '{"type":4,"Msg":{"content":""},"User":{"name":' + JSON.stringify(UserInfo.Username) + ',"IP":' + JSON.stringify(UserInfo.IP) + ',"port":' + JSON.stringify(UserInfo.port) + '}}'; //json格式一定要标准！
+/*      server.send(Msg, 8085,"127.0.0.1" );  //收到广播之后单播自己的信息返回 */
+console.log(rinfo.port,rinfo.address)
+      server.send(Msg,rinfo.port, rinfo.address);  //向组播广播号发送信息  
   }else if(JSON.parse(msg.toString()).type == 1){   //收到消息之后给用户端添加上去
-    socket.emit('ClientGetMsg', {  //收到消息后将消息给客户端处理
+    var name =JSON.parse(msg.toString()).User.name;
+    socket.emit('CilentLogout', {  //收到消息后将消息给客户端处理--提醒这个人要登出!
       type: 1,
       Msg:{
-        content:JSON.parse(msg.toString()).Msg.content,
+        content:"Logout",
       },
       User:{
         name:name,
-        IP:rinfo.address + ":" + rinfo.port
+        IP:rinfo.address,
+        port:rinfo.port
       },
      }); 
-
+  }else if(JSON.parse(msg.toString()).type == 4){
+    console.log(rinfo.address,rinfo.port);;
+    var name = JSON.parse(msg.toString()).User.name;
+    socket.emit('ClientLogin', {  //收到广播之后将IP地址和端口号返回给客户端处理
+      type: 4,  //返回时让他们不要互相发，重复发占用网络通道。
+      Msg:{
+        content:"Login",
+      },
+      User:{
+        name:name,
+        IP:rinfo.address,
+        port:rinfo.port,
+      },
+     });
   }
 });
-
-
 });
 
 server.on('close', () => {
@@ -161,15 +188,20 @@ console.log("client comming", client_sock.remoteAddress, client_sock.remotePort)
     //1.创建socket
     var TCPClientConnectSeversocket = new net.Socket();
     //2.socket连接服务器
-    TCPClientConnectSeversocket.connect(/* client_sock.remotePort */6082,client_sock.remoteAddress.split(":")[4],()=>{ //建立连接,端口号何url顺序不能写乱
+    TCPClientConnectSeversocket.connect(/* client_sock.remotePort */6082,client_sock.remoteAddress.split(":")[3],()=>{ //建立连接,端口号何url顺序不能写乱
+      console.log(77);
 /*       TCPClientConnectSeversocket.name = data.receiver.name; */
-      TCPClientConnectSeversocket.IP = client_sock.remoteAddress;
-
+      TCPClientConnectSeversocket.name = "";
+      TCPClientConnectSeversocket.IP = client_sock.remoteAddress.split(":")[3];
+      TCPClientConnectSeversocket.port = client_sock.remotePort;     
+      console.log(TCPClientConnectSeversocket.IP, TCPClientConnectSeversocket.port) 
+      TCPServerList.push({receiver:{name:TCPClientConnectSeversocket.name,IP:TCPClientConnectSeversocket.IP,port:TCPClientConnectSeversocket.port},ServerTCP:TCPClientConnectSeversocket});  //本机客户端全部放入数组当中--已经建立了连接
     }); 
     TCPClientConnectSeversocket.on("error", function(e) {
       console.log("error", e);
     });
-    TCPServerList.push({receiver:{name:"",IP:TCPClientConnectSeversocket.IP},ServerTCP:TCPClientConnectSeversocket});  //本机客户端全部放入数组当中--已经建立了连接
+    console.log(TCPClientConnectSeversocket.IP, TCPClientConnectSeversocket.port) 
+
     };
   };
 
@@ -207,7 +239,7 @@ client_sock.on("data", function(data) {
     io.emit('GetMsg', { //传送消息给界面,这样也行不要嵌套太多函数了
       Sender:{
         name:"",
-        IP:client_sock.remoteAddress.split(":")[4],
+        IP:client_sock.remoteAddress.toString().split(":")[3],
         port:client_sock.remotePort,
       },
       receiver:{
@@ -268,7 +300,7 @@ io.on('connection', function (socket) {
 socket.on("TCPClientConnectServer",(data)=>{  //TCP主动建立连接
   var isChange = false;//是否有相同的连接
   for(let j =0;j<TCPServerList.length;j++){
-    if(TCPServerList[j].receiver.IP == data.receiver.IP){
+    if(TCPServerList[j].receiver.IP == data.receiver.IP && TCPServerList[j].receiver.port == data.receiver.port){
       isChange = true;
     }
   }
@@ -276,17 +308,20 @@ socket.on("TCPClientConnectServer",(data)=>{  //TCP主动建立连接
   //1.创建socket
   var TCPClientConnectSeversocket = new net.Socket();
   //2.socket连接服务器
-	TCPClientConnectSeversocket.connect((data.receiver.IP).split(":")[0],(data.receiver.IP).split(":")[0],()=>{ //建立连接
+	TCPClientConnectSeversocket.connect(data.receiver.IP,data.receiver.port,()=>{ //建立连接
     TCPClientConnectSeversocket.name = data.receiver.name;
     TCPClientConnectSeversocket.IP = data.receiver.IP;
-    TCPServerList.push({receiver:{name:TCPClientConnectSeversocket.name,IP:TCPClientConnectSeversocket.IP},ServerTCP:TCPClientConnectSeversocket});  //本机客户端全部放入数组当中--已经建立了连接
+    TCPClientConnectSeversocket.port = data.receiver.port;
+    TCPServerList.push({receiver:{name:TCPClientConnectSeversocket.name,IP:TCPClientConnectSeversocket.IP,port:TCPClientConnectSeversocket.port},ServerTCP:TCPClientConnectSeversocket});  //本机客户端全部放入数组当中--已经建立了连接
   }); 
   }
 })
 
 socket.on('TCPClientSendSever',(data) => {   //TCP发送消息
+  console.log(1);
   for(let k = 0;k < TCPServerList.length;k++){
-    if( data.receiver.IP == TCPServerList[k].receiver.IP){
+    console.log(data.receiver.IP,TCPServerList[k].receiver.IP,data.receiver.port,TCPServerList[k].receiver.port)
+    if( data.receiver.IP == TCPServerList[k].receiver.IP && data.receiver.port == TCPServerList[k].receiver.port){
       console.log("我发了!");
       TCPServerList[k].ServerTCP.write(data.content); //发送消息
     }
