@@ -5,6 +5,7 @@ var path = require('path');
 // 1.在app.js的头上定义ejs:
 var ejs = require('ejs');
 var fs = require("fs");
+var iconv = require('iconv-lite');
 
 const dgram = require('dgram');
 const client = dgram.createSocket('udp4');
@@ -244,7 +245,7 @@ client_sock.on("data", function(data) {
       var bufffer = Buffer.alloc(parseInt(data.toString().split(":")[2]));
       fs.open(data.toString().split(":")[1], "w+", (err, fd) => {
         // 读取 buf 向文件写入数据
-        fs.write(fd, bufffer, 0, parseInt(data.toString().split(":")[2]), 0, (err, bytesWritten, buffer) => {
+/*         fs.write(fd, bufffer, 0, parseInt(data.toString().split(":")[3]), 0, (err, bytesWritten, buffer) => {
             // 同步磁盘缓存
             fs.fsync(fd, err => {
                 // 关闭文件
@@ -252,7 +253,8 @@ client_sock.on("data", function(data) {
                     console.log("关闭文件");
                 });
             });
-        });
+        }); */
+        fs.writeFileSync(data.toString().split(":")[1], data.toString().split(":")[3],"utf-8");
     });
     }else if(data.toString().split(":")[0] != "文件传输"){
       io.emit('GetMsg', { //传送消息给界面,这样也行不要嵌套太多函数了
@@ -273,8 +275,6 @@ client_sock.on("data", function(data) {
 /* client_sock.end(); // 正常关闭 */
 });
 
-/* client_sock.end(); // 正常关闭 */
-});
 
 
 client_sock.on("error", function(err) {
@@ -358,24 +358,32 @@ socket.on('TCPClientSendFile',(data) => {   //TCP发送文件
   var large = 0;
   fs.stat(data.content.split(":")[1],function(err,stats){  //获取文件大小
     console.log(err);
+    console.log(stats.size);
     console.log(stats);
+    console.log(parseInt(stats.size));
     large = parseInt(stats.size);  //保存文件大小
   });
-  var buffer = Buffer.alloc(large);
-  fs.open(data.content.split(":")[1], "r", (err, fd) => {
+  console.log(large,"这是large");
+/*   fs.open(data.content.split(":")[1], "r", (err, fd) => {
     // 读取文件
-    fs.read(fd, buffer, 0, 0, 0, (err, bytesRead, buffer) => {
+    console.log(fd);
+    fs.read(fd, buffer, 0, 5, 0, (err, bytesRead, buffer) => {
         console.log(bytesRead);
         console.log(buffer);
         value = buffer;
       });
-  });
-  data.filecontent = value; //将buffer内容填入data发送
+  }); */
+  var Filedata = fs.readFileSync(data.content.split(":")[1],'binary'); //规定编码方式
+  var buffer = new Buffer(Filedata, 'binary');
+  var str = iconv.decode(buffer, 'GBK');
+  console.log(str);
+  /* data.filecontent = value;  *///将buffer内容填入data发送
   for(let k = 0;k < TCPServerList.length;k++){
     console.log(data.receiver.IP,TCPServerList[k].receiver.IP,data.receiver.port,TCPServerList[k].receiver.port)
     if( data.receiver.IP == TCPServerList[k].receiver.IP && 6082 == TCPServerList[k].receiver.port){
       console.log("我发了!");
-      TCPServerList[k].ServerTCP.write("文件传输" + ":" + data.content.split(":")[1] + ":" + large + ":" + value); //发送消息
+      console.log(Filedata.toString('utf-8'));
+      TCPServerList[k].ServerTCP.write("文件传输" + ":" + data.content.split(":")[1] + ":" + large + ":" + str); //发送消息
     }
   }
 });
