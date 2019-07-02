@@ -1,14 +1,11 @@
-var http=require("http");
 var express=require("express");
 var app=express();
-var path = require('path');
 // 1.在app.js的头上定义ejs:
 var ejs = require('ejs');
 var fs = require("fs");
 var iconv = require('iconv-lite');
 
 const dgram = require('dgram');
-const client = dgram.createSocket('udp4');
 const multicastAddr = '224.100.100.100';  //组播端口号
 var UserInfo = {  //保存个人信息
   Username:"",
@@ -57,7 +54,6 @@ socket.emit('getIPAdress',{  //收到广播之后将IP地址和端口号返回�
 
 /* 第一次使用登陆设置用户名字函数 */
 socket.on('ServerLogin', (data) => {  //服务端监听
-/*   console.log(multicastAddr); */
   //server.addMembership(multicastAddr);
   UserInfo.Username = data.username;
   var Msg = '{"type":1,"Msg":{"content":""},"User":{"name":' + JSON.stringify(UserInfo.Username) + ',"IP":' + JSON.stringify(UserInfo.IP) + ',"port":' + JSON.stringify(UserInfo.port) + '}}'; //json格式一定要标准！
@@ -65,7 +61,6 @@ socket.on('ServerLogin', (data) => {  //服务端监听
 });
 
 socket.on('ServerLogout', (data) => {  //本机服务端登出
-  /*   console.log(multicastAddr); */
     //server.addMembership(multicastAddr);
     UserInfo.Username = data.username;
     var Msg = '{"type":0,"Msg":{"content":"Logout"},"User":{"name":' + JSON.stringify(UserInfo.Username) + ',"IP":""}}'; //json格式一定要标准！发出登出信息
@@ -90,10 +85,7 @@ server.on('message', (msg, rinfo) => {  //收到广播之后
         port:rinfo.port,
       },
      });
-     console.log(33);
      var Msg = '{"type":4,"Msg":{"content":""},"User":{"name":' + JSON.stringify(UserInfo.Username) + ',"IP":' + JSON.stringify(UserInfo.IP) + ',"port":' + JSON.stringify(UserInfo.port) + '}}'; //json格式一定要标准！
-/*      server.send(Msg, 8085,"127.0.0.1" );  //收到广播之后单播自己的信息返回 */
-console.log(rinfo.port,rinfo.address)
       server.send(Msg,rinfo.port, rinfo.address);  //向组播广播号发送信息  
   }else if(JSON.parse(msg.toString()).type == 0){   //收到消息之后给用户端添加上去
     var name =JSON.parse(msg.toString()).User.name;
@@ -190,7 +182,6 @@ console.log("client comming", client_sock.remoteAddress, client_sock.remotePort)
     var TCPClientConnectSeversocket = new net.Socket();
     //2.socket连接服务器
     TCPClientConnectSeversocket.connect(/* client_sock.remotePort */6082,client_sock.remoteAddress.split(":")[3],()=>{ //建立连接,端口号何url顺序不能写乱
-      console.log(77);
 /*       TCPClientConnectSeversocket.name = data.receiver.name; */
       TCPClientConnectSeversocket.name = "";
       TCPClientConnectSeversocket.IP = client_sock.remoteAddress.split(":")[3];
@@ -202,8 +193,6 @@ console.log("client comming", client_sock.remoteAddress, client_sock.remotePort)
     TCPClientConnectSeversocket.on("error", function(e) {
       console.log("error", e);
     });
-    console.log(TCPClientConnectSeversocket.IP, TCPClientConnectSeversocket.port) 
-
     };
   };
 
@@ -220,7 +209,6 @@ function showClients(){ //显示用户机数量
 // 客户端断开连接的时候处理,用户断线离开了
 client_sock.on("close", function() {
 console.log("close socket");
-/* clientList.splice(clientList.indexOf(socket), 1); */
 });
 
 // 接收到客户端的数据，调用这个函数
@@ -232,33 +220,16 @@ client_sock.on("data", function(data) {
   console.log(data);
   console.log(client_sock.remoteAddress,client_sock.remotePort);
   //把当前连接的客户机的信息转发到其他客户机  
-/*   for(var i=0;i<clientList.length;i++) { 
-    if(socket !== clientList[i]) {      
-      clientList[i].write('【' + socket.name + '】：' + data);   
-      }  
-    } */
     if(data.toString().split(":")[0] == "文件传输"){
-      console.log("传输");
-      console.log(data.toString());
-      console.log(data.toString().split(":")[1]);
-      var path = data.toString().split(":")[1];
-      var bufffer = Buffer.alloc(parseInt(data.toString().split(":")[2]));
-      fs.open(data.toString().split(":")[1], "w+", (err, fd) => {
+      var buffer = new Buffer(data, 'binary');
+      var str = iconv.decode(buffer, 'GBK');
+      fs.open(str.toString().split(":")[1], "w+", (err, fd) => {
         // 读取 buf 向文件写入数据
-/*         fs.write(fd, bufffer, 0, parseInt(data.toString().split(":")[3]), 0, (err, bytesWritten, buffer) => {
-            // 同步磁盘缓存
-            fs.fsync(fd, err => {
-                // 关闭文件
-                fs.close(fd, err => {
-                    console.log("关闭文件");
-                });
-            });
-        }); */
         fs.writeFileSync(data.toString().split(":")[1], data.toString().split(":")[3],"utf-8");
     });
     io.emit('RemindReceiveFileCompleted',{
-      Filename:data.toString().split(":")[1],
-      Location:data.toString().split(":")[1]
+      Filename:str.toString().split(":")[1],
+      Location:str.toString().split(":")[1]
     })
     }else if(data.toString().split(":")[0] != "文件传输"){
       io.emit('GetMsg', { //传送消息给界面,这样也行不要嵌套太多函数了
@@ -300,11 +271,6 @@ console.log("listen error");
 serverNet.on("close", function() {
 console.log("server stop listener");
 });
-/*
-serverNet.on("connection", function(client_sock) {
-console.log("client comming 22222");
-});
-*/
 // 编写代码，指示这个server监听到哪个端口上面。
 // 127.0.0.1: 6080
 // node就会来监听我们的server,等待连接接入
@@ -346,11 +312,10 @@ socket.on("TCPClientConnectServer",(data)=>{  //TCP主动建立连接
   }
 })
 socket.on('TCPClientSendSever',(data) => {   //TCP发送消息
-  console.log(1);
   for(let k = 0;k < TCPServerList.length;k++){
     console.log(data.receiver.IP,TCPServerList[k].receiver.IP,data.receiver.port,TCPServerList[k].receiver.port)
     if( data.receiver.IP == TCPServerList[k].receiver.IP && 6082 == TCPServerList[k].receiver.port){
-      console.log("我发了!");
+      console.log("消息已发送!");
       TCPServerList[k].ServerTCP.write(data.Sender.name.toString() + ":" + data.content); //发送消息
     }
   }
@@ -358,35 +323,20 @@ socket.on('TCPClientSendSever',(data) => {   //TCP发送消息
 
 socket.on('TCPClientSendFile',(data) => {   //TCP发送文件
   console.log(data.content);
-  var value = ""; //用于保存文件内容buffer
   var large = 0;
   fs.stat(data.content.split(":")[1],function(err,stats){  //获取文件大小
     console.log(err);
-    console.log(stats.size);
     console.log(stats);
-    console.log(parseInt(stats.size));
     large = parseInt(stats.size);  //保存文件大小
   });
-  console.log(large,"这是large");
-/*   fs.open(data.content.split(":")[1], "r", (err, fd) => {
-    // 读取文件
-    console.log(fd);
-    fs.read(fd, buffer, 0, 5, 0, (err, bytesRead, buffer) => {
-        console.log(bytesRead);
-        console.log(buffer);
-        value = buffer;
-      });
-  }); */
   var Filedata = fs.readFileSync(data.content.split(":")[1],'binary'); //规定编码方式
   var buffer = new Buffer(Filedata, 'binary');
   var str = iconv.decode(buffer, 'GBK');
-  console.log(str);
   /* data.filecontent = value;  *///将buffer内容填入data发送
   for(let k = 0;k < TCPServerList.length;k++){
     console.log(data.receiver.IP,TCPServerList[k].receiver.IP,data.receiver.port,TCPServerList[k].receiver.port)
     if( data.receiver.IP == TCPServerList[k].receiver.IP && 6082 == TCPServerList[k].receiver.port){
-      console.log("我发了!");
-      console.log(Filedata.toString('utf-8'));
+      console.log("消息已发送!");
       TCPServerList[k].ServerTCP.write("文件传输" + ":" + data.content.split(":")[1] + ":" + large + ":" + str); //发送消息
     }
   };
@@ -404,27 +354,7 @@ socket.on('TCPClientDisConnect',(data) => {   //TCP断开连接
     }
   }
 });
-
 })
-/* var clientTCP = net.connect({port: 6080},function(){
-  console.log('【本机提示】登录到聊天室');
-  process.stdin.on('data',function(data){
-    clientTCP.write(data);
-  })
-  clientTCP.on("data", function(data) {
-      console.log(data.toString());
-  });
-  clientTCP.on('end', function() {
-      console.log('【本机提示】退出聊天室');
-      process.exit();
-  });
-  clientTCP.on('error', function() {
-      console.log('【本机提示】聊天室异常');
-      process.exit();
-  });
-}); */
-
-
 /* TCP客户端代码结束 */
 
 /* TCP代码结束 */
