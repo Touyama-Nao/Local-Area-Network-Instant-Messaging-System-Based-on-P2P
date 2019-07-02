@@ -256,6 +256,10 @@ client_sock.on("data", function(data) {
         }); */
         fs.writeFileSync(data.toString().split(":")[1], data.toString().split(":")[3],"utf-8");
     });
+    io.emit('RemindReceiveFileCompleted',{
+      Filename:data.toString().split(":")[1],
+      Location:data.toString().split(":")[1]
+    })
     }else if(data.toString().split(":")[0] != "文件传输"){
       io.emit('GetMsg', { //传送消息给界面,这样也行不要嵌套太多函数了
         Sender:{
@@ -385,7 +389,11 @@ socket.on('TCPClientSendFile',(data) => {   //TCP发送文件
       console.log(Filedata.toString('utf-8'));
       TCPServerList[k].ServerTCP.write("文件传输" + ":" + data.content.split(":")[1] + ":" + large + ":" + str); //发送消息
     }
-  }
+  };
+  io.emit('RemindSendFileCompleted',{
+    Filename:data.content.split(":")[1],
+    Location:data.content.split(":")[1]
+  })
 });
 
 socket.on('TCPClientDisConnect',(data) => {   //TCP断开连接
