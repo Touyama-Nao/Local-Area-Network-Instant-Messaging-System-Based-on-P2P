@@ -11,7 +11,8 @@ var UserInfo = {  //保存个人信息
   Username:"",
   IP:"",
   port:""
-}
+};
+var IsLogin = false;
 
 /* 服务端代码开始 */
 const server = dgram.createSocket('udp4');
@@ -54,8 +55,10 @@ socket.emit('getIPAdress',{  //收到广播之后将IP地址和端口号返回�
 
 /* 第一次使用登陆设置用户名字函数 */
 socket.on('ServerLogin', (data) => {  //服务端监听
+  console.log(data.username);
   //server.addMembership(multicastAddr);
   UserInfo.Username = data.username;
+  IsLogin = true;
   var Msg = '{"type":1,"Msg":{"content":""},"User":{"name":' + JSON.stringify(UserInfo.Username) + ',"IP":' + JSON.stringify(UserInfo.IP) + ',"port":' + JSON.stringify(UserInfo.port) + '}}'; //json格式一定要标准！
   server.send(Msg, 8083, multicastAddr);  //向组播广播号发送信息
 });
@@ -63,6 +66,7 @@ socket.on('ServerLogin', (data) => {  //服务端监听
 socket.on('ServerLogout', (data) => {  //本机服务端登出
     //server.addMembership(multicastAddr);
     UserInfo.Username = data.username;
+    IsLogin = false;
     var Msg = '{"type":0,"Msg":{"content":"Logout"},"User":{"name":' + JSON.stringify(UserInfo.Username) + ',"IP":""}}'; //json格式一定要标准！发出登出信息
     server.send(Msg, 8083, multicastAddr);  //向组播广播号发送信息
 });
@@ -71,7 +75,7 @@ socket.on('ServerLogout', (data) => {  //本机服务端登出
 server.on('message', (msg, rinfo) => {  //收到广播之后
   console.log(`receive client message from ${rinfo.address}:${rinfo.port}：${msg}`);
   console.log(JSON.parse(msg.toString()));
-  if(JSON.parse(msg.toString()).type == 1){ //判断是不是别的用户的新加入广播
+  if(JSON.parse(msg.toString()).type == 1 && JSON.parse(msg.toString()).User.name != UserInfo.Username && IsLogin == true){ //判断是不是别的用户的新加入广播
     console.log(rinfo.address,rinfo.port);;
     var name = JSON.parse(msg.toString()).User.name;
     socket.emit('ClientLogin', {  //收到广播之后将IP地址和端口号返回给客户端处理
@@ -100,7 +104,7 @@ server.on('message', (msg, rinfo) => {  //收到广播之后
         port:rinfo.port
       },
      }); 
-  }else if(JSON.parse(msg.toString()).type == 4){
+  }else if(JSON.parse(msg.toString()).type == 4 && JSON.parse(msg.toString()).User.name != UserInfo.Username && IsLogin == true){
     console.log(rinfo.address,rinfo.port);;
     var name = JSON.parse(msg.toString()).User.name;
     socket.emit('ClientLogin', {  //收到广播之后将IP地址和端口号返回给客户端处理
@@ -130,7 +134,7 @@ server.on('listening', () => {
   console.log('socket正在监听中...');
   server.addMembership(multicastAddr); // 不写也行
   server.setBroadcast(true);
-  server.setMulticastTTL(2);  //设置最多两跳
+  server.setMulticastTTL(1);  //设置最多两跳
 });
 
 server.bind('8081'); // 此处填写IP后无法组播
