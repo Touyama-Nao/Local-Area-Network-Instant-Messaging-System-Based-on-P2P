@@ -225,15 +225,13 @@ client_sock.on("data", function(data) {
   console.log(client_sock.remoteAddress,client_sock.remotePort);
   //把当前连接的客户机的信息转发到其他客户机  
     if(data.toString().split(":")[0] == "文件传输"){
-      var buffer = new Buffer(data, 'binary');
-      var str = iconv.decode(buffer, 'GBK');
-      fs.open(str.toString().split(":")[1], "w+", (err, fd) => {
+      fs.open(data.toString().split(":")[1], "w+", (err, fd) => {
         // 读取 buf 向文件写入数据
         fs.writeFileSync(data.toString().split(":")[1], data.toString().split(":")[3],"utf-8");
     });
     io.emit('RemindReceiveFileCompleted',{
-      Filename:str.toString().split(":")[1],
-      Location:str.toString().split(":")[1]
+      Filename:data.toString().split(":")[1],
+      Location:data.toString().split(":")[1]
     })
     }else if(data.toString().split(":")[0] != "文件传输"){
       io.emit('GetMsg', { //传送消息给界面,这样也行不要嵌套太多函数了
@@ -326,7 +324,7 @@ socket.on('TCPClientSendSever',(data) => {   //TCP发送消息
 });
 
 socket.on('TCPClientSendFile',(data) => {   //TCP发送文件
-  console.log(data.content);
+  console.log(data.content.split(":")[1]);
   var large = 0;
   fs.stat(data.content.split(":")[1],function(err,stats){  //获取文件大小
     console.log(err);
@@ -335,7 +333,7 @@ socket.on('TCPClientSendFile',(data) => {   //TCP发送文件
   });
   var Filedata = fs.readFileSync(data.content.split(":")[1],'binary'); //规定编码方式
   var buffer = new Buffer(Filedata, 'binary');
-  var str = iconv.decode(buffer, 'GBK');
+  var str = iconv.decode(buffer, 'utf-8');
   /* data.filecontent = value;  *///将buffer内容填入data发送
   for(let k = 0;k < TCPServerList.length;k++){
     console.log(data.receiver.IP,TCPServerList[k].receiver.IP,data.receiver.port,TCPServerList[k].receiver.port)
